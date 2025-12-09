@@ -1,10 +1,4 @@
+@import "tailwindcss";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Add this to ensure the dashboard takes the full screen */
-body, #app {
-    margin: 0;
-    width: 100vw;
-    height: 100vh;
-}
