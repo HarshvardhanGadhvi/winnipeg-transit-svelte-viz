@@ -1,89 +1,85 @@
 <script lang="ts">
     import { otpStore } from '../../stores/otpStore';
-    import { Search, MapPin } from 'lucide-svelte';
+    
+    export let selectedRouteId: string;
 
-    let { selectedRouteId = $bindable() } = $props();
-    let searchTerm = $state("");
+    // 1. Define what a Route looks like so TypeScript stops complaining
+    interface Route {
+        route_number: string;
+        otp_percentage: number;
+        color: string;
+        text_color: string;
+    }
 
-    // Filter logic
-    let filteredRoutes = $derived(
-        ($otpStore as any).routes
-            ? ($otpStore as any).routes.filter((r: any) => 
-                r.route_number && r.route_number.toString().includes(searchTerm)
-              )
-            : []
-    );
+    // 2. Cast the store data so TS knows 'routes' is a list of Route objects
+    $: storeData = $otpStore as { routes: Route[] };
+    $: routes = storeData.routes || [];
+
+    // --- SORTING LOGIC ---
+    function getPriority(routeNum: string) {
+        const r = routeNum.toUpperCase();
+        if (r === 'BLUE') return 1;
+        if (r.startsWith('FX')) return 2;
+        if (r.startsWith('F')) return 3;
+        if (r.startsWith('D')) return 4;
+        
+        const n = parseInt(r);
+        if (!isNaN(n)) {
+            if (n < 100) return 5; 
+            return 6;              
+        }
+        return 7;
+    }
+
+    // 3. Now 'a' and 'b' are correctly typed as 'Route', so no more red squiggly lines!
+    $: sortedRoutes = [...routes].sort((a, b) => {
+        const pA = getPriority(a.route_number);
+        const pB = getPriority(b.route_number);
+        
+        if (pA !== pB) return pA - pB;
+        
+        return a.route_number.localeCompare(b.route_number, undefined, { numeric: true });
+    });
 </script>
 
-<div class="flex flex-col h-full bg-white">
-    <div class="p-4 border-b border-gray-100 bg-white sticky top-0 z-10">
-        <div class="relative group">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={14} class="text-slate-400 group-focus-within:text-teal-500 transition-colors" />
-            </div>
-            <input 
-                type="text" 
-                bind:value={searchTerm} 
-                placeholder="Find a route..." 
-                class="block w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg leading-5 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all sm:text-sm"
-            />
+<div class="flex-1 overflow-y-auto p-4 space-y-2">
+    <button 
+        class="w-full flex items-center justify-between p-3 rounded-lg border transition-all duration-200 
+        {selectedRouteId === 'ALL' 
+            ? 'bg-slate-800 text-white border-slate-900 shadow-md transform scale-[1.02]' 
+            : 'bg-white text-slate-600 border-gray-200 hover:border-teal-400 hover:shadow-sm'}"
+        on:click={() => selectedRouteId = 'ALL'}
+    >
+        <span class="font-bold tracking-tight">Show All System</span>
+        <div class="w-2 h-2 rounded-full {selectedRouteId === 'ALL' ? 'bg-teal-400' : 'bg-slate-300'}"></div>
+    </button>
+
+    <div class="h-px bg-gray-100 my-2"></div>
+
+    {#each sortedRoutes as route}
+      <button 
+    class="w-full group flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200 mb-1
+    {selectedRouteId === route.route_number 
+        ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20' 
+        : 'text-slate-600 hover:bg-slate-100'}"
+    on:click={() => selectedRouteId = route.route_number}
+>
+    <div 
+        class="w-10 h-8 flex items-center justify-center rounded-lg font-bold text-xs shadow-sm"
+        style="
+            background-color: {selectedRouteId === route.route_number ? 'white' : (route.color || '#334155')}; 
+            color: {selectedRouteId === route.route_number ? '#0284c7' : (route.text_color || '#ffffff')};
+        "
+    >
+        {route.route_number}
+    </div>
+
+    <div class="flex-1 text-left">
+        <div class="text-[10px] font-bold opacity-70 uppercase tracking-wider">OTP</div>
+        <div class="font-bold text-base leading-none">
+            {route.otp_percentage}%
         </div>
     </div>
-
-    <div class="overflow-y-auto flex-1 p-2 space-y-0.5 custom-scrollbar">
-        <button 
-            onclick={() => selectedRouteId = 'ALL'}
-            class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-3
-            {selectedRouteId === 'ALL' 
-                ? 'bg-teal-50 text-teal-800 ring-1 ring-teal-200' 
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
-        >
-            <div class="flex items-center justify-center w-6 h-6 rounded bg-teal-100/50">
-                <MapPin size={14} class={selectedRouteId === 'ALL' ? 'text-teal-600' : 'text-slate-400'}/>
-            </div>
-            <span>System Overview</span>
-        </button>
-
-        <div class="h-px bg-slate-100 my-2 mx-2"></div>
-
-        {#each filteredRoutes as route}
-            <button 
-                onclick={() => selectedRouteId = route.route_number}
-                class="w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 flex justify-between items-center group
-                {selectedRouteId === route.route_number 
-                    ? 'bg-slate-100 text-slate-900 font-semibold shadow-sm border border-slate-200' 
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}"
-            >
-                <div class="flex items-center gap-3">
-                    <span class="font-mono text-xs bg-slate-200/50 px-1.5 py-0.5 rounded text-slate-600 group-hover:bg-slate-200 transition-colors">
-                        #{route.route_number}
-                    </span>
-                    </div>
-                
-                <span class="{route.otp_percentage >= 80 ? 'text-emerald-600' : (route.otp_percentage >= 70 ? 'text-amber-600' : 'text-rose-600')} font-medium text-xs">
-                    {route.otp_percentage}%
-                </span>
-            </button>
-        {/each}
-
-        {#if filteredRoutes.length === 0}
-            <div class="p-4 text-center text-xs text-slate-400 italic">
-                No routes found matching "{searchTerm}"
-            </div>
-        {/if}
-    </div>
+</button>
+    {/each}
 </div>
-
-<style>
-    /* Optional: Custom slim scrollbar for the list */
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: #e2e8f0;
-        border-radius: 20px;
-    }
-</style>

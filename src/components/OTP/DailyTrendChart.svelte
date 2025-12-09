@@ -1,108 +1,93 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import { Chart, registerables } from 'chart.js';
-    import { otpStore, fetchRouteHistory, fetchSystemHistory } from '../../stores/otpStore';
+    import { onMount, afterUpdate } from 'svelte';
+    import Chart from 'chart.js/auto';
 
-    Chart.register(...registerables);
+    // 1. Accept data from parent instead of fetching it
+    export let chartData: any[] = []; 
+    export let label: string = "System OTP";
 
-    let { selectedRouteId = 'ALL' } = $props();
     let canvas: HTMLCanvasElement;
     let chartInstance: Chart;
 
-    // --- 1. DATA FETCHER ---
-    $effect(() => {
-        if (selectedRouteId === 'ALL') {
-            fetchSystemHistory();
-        } else {
-            fetchRouteHistory(selectedRouteId);
-        }
-    });
-
-    // --- 2. CHART RENDERER ---
-    $effect(() => {
-        // Read the store dependencies
-        const store = $otpStore as any;
-        const isLoading = store.historyLoading;
-        
-        // Determine which data to show
-        let currentData = [];
-        let currentLabel = 'Loading...';
-
-        if (selectedRouteId === 'ALL') {
-            currentData = store.systemHistory || [];
-            currentLabel = 'System Average (Post-July 2025)';
-        } else {
-            // If loading, currentData remains [], clearing the chart immediately
-            if (!isLoading && store.activeRouteHistory) {
-                currentData = store.activeRouteHistory;
-                currentLabel = `Route #${selectedRouteId} Trend`;
-            }
-        }
-
-        // UPDATE THE CHART
-        if (chartInstance) {
-            // 1. Update Labels & Data
-            chartInstance.data.labels = currentData.map((t: any) => t.date);
-            chartInstance.data.datasets[0].data = currentData.map((t: any) => t.otp);
-            chartInstance.data.datasets[0].label = currentLabel;
-
-            // 2. Visuals (Grey out if loading)
-            if (isLoading) {
-                chartInstance.data.datasets[0].borderColor = '#e2e8f0'; // Light Grey
-                chartInstance.data.datasets[0].backgroundColor = 'transparent';
-            } else {
-                const isSystem = selectedRouteId === 'ALL';
-                chartInstance.data.datasets[0].borderColor = isSystem ? '#0d9488' : '#2563eb'; // Teal vs Blue
-                chartInstance.data.datasets[0].backgroundColor = isSystem ? 'rgba(13, 148, 136, 0.1)' : 'rgba(37, 99, 235, 0.1)';
-            }
-
-            chartInstance.update();
-        }
-    });
+    // 2. Reactivity: Update chart when data changes
+    $: if (chartInstance && chartData) {
+        updateChart();
+    }
 
     onMount(() => {
-        chartInstance = new Chart(canvas, {
+        initChart();
+    });
+
+    function initChart() {
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: [],
                 datasets: [{
-                    label: 'Initializing...',
+                    label: 'On-Time Performance',
                     data: [],
+                    borderColor: '#0d9488', // Teal-600
+                    backgroundColor: 'rgba(13, 148, 136, 0.1)',
                     borderWidth: 2,
-                    pointRadius: 0, 
-                    pointHoverRadius: 6,
-                    tension: 0.2,
-                    fill: true
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 2,
+                    pointHoverRadius: 5
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { display: true } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: (ctx) => `OTP: ${ctx.parsed.y}%`
+                        }
+                    }
+                },
                 scales: {
-                    x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
-                    y: { min: 0, max: 100, grid: { color: '#f1f5f9' } }
+                    y: {
+                        beginAtZero: false,
+                        min: 0,
+                        max: 100,
+                        grid: { color: '#f3f4f6' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
                 }
             }
         });
+        
+        // Load initial data
+        updateChart();
+    }
 
-        return () => {
-            if (chartInstance) chartInstance.destroy();
-        };
-    });
+    function updateChart() {
+        if (!chartInstance || !chartData) return;
+
+        // Map the data props to ChartJS format
+        chartInstance.data.labels = chartData.map(d => {
+            // Format 2025-12-09 -> Dec 09
+            const date = new Date(d.date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        
+        chartInstance.data.datasets[0].data = chartData.map(d => d.otp);
+        chartInstance.data.datasets[0].label = label;
+        
+        chartInstance.update();
+    }
 </script>
 
-<div class="relative w-full h-96 p-4">
-    
-    {#if ($otpStore as any).historyLoading}
-        <div class="absolute inset-0 flex items-center justify-center bg-white/60 z-10 backdrop-blur-sm transition-all rounded-lg">
-            <div class="flex flex-col items-center gap-2">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span class="text-xs font-semibold text-blue-600">Fetching History...</span>
-            </div>
-        </div>
-    {/if}
-
+<div class="relative w-full h-full">
     <canvas bind:this={canvas}></canvas>
 </div>
