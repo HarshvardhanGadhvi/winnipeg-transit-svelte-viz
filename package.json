@@ -17,5 +17,12 @@
     "svelte-check": "^4.3.4",
     "typescript": "~5.9.3",
     "vite": "^7.2.4"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "cors": "^2.8.5",
+    "leaflet": "^1.9.4",
+    "lucide-svelte": "^0.556.0",
+    "svelte-leaflet": "^0.2.0"
   }
 }
