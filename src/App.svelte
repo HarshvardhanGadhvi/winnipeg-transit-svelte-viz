@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { TrendingUp, Users, Activity, Zap, BarChart3, Map } from 'lucide-svelte';
+    import { Users, Activity, BarChart3, Calendar } from 'lucide-svelte';
     import { otpStore, fetchOtpData } from './stores/otpStore'; 
     import RouteList from './components/OTP/RouteList.svelte';
     import OTP_Scorecard from './components/OTP/OTP_Scorecard.svelte';
@@ -8,14 +8,21 @@
     import SeasonalRidershipChart from './components/Ridership/SeasonalRidershipChart.svelte';
     import SystemMapOverview from './components/OTP/SystemMapOverview.svelte';
     import RouteMapViewer from './components/OTP/RouteMapViewer.svelte';
-    
+    import PassupDashboard from './components/Passups/PassupDashboard.svelte';
+    import ThemeToggle from './components/ThemeToggle.svelte';
+
+    // Get Store Data
     $: ({ routes, metadata, loading, error } = $otpStore as any);
 
+    // Local State
     let selectedRouteId = 'ALL';
-    let currentTab: 'OTP' | 'RIDERSHIP' = 'OTP'; 
+    let currentTab: 'OTP' | 'RIDERSHIP' | 'PASSUPS' = 'OTP'; 
+    let timeRange: 30 | 60 | 90 = 30; // New Date Range Filter
+    
     let currentTrends = { otp_change: 0, trip_change: 0, deviation_change: 0 };
     let chartHistory: any[] = []; 
 
+    // Reactive Helpers
     $: displayData = selectedRouteId === 'ALL' 
         ? null 
         : (routes || []).find((r: any) => r.route_number === selectedRouteId);
@@ -24,17 +31,18 @@
         ? displayData.otp_percentage 
         : (metadata?.overall_otp_percentage || 0);
 
-    $: loadDashboardData(selectedRouteId, metadata);
+    // Watch for changes in Route OR Time Range
+    $: loadDashboardData(selectedRouteId, metadata, timeRange);
 
-    async function loadDashboardData(routeId: string, meta: any) {
+    async function loadDashboardData(routeId: string, meta: any, range: number) {
         if (!meta) return;
         try {
             if (routeId === 'ALL') {
                 currentTrends = meta.trends || {};
-                const res = await fetch('http://localhost:5001/api/v1/otp/system-history');
+                const res = await fetch(`http://localhost:5001/api/v1/otp/system-history?days=${range}`);
                 chartHistory = await res.json(); 
             } else {
-                const res = await fetch(`http://localhost:5001/api/v1/otp/route/${routeId}`);
+                const res = await fetch(`http://localhost:5001/api/v1/otp/route/${routeId}?days=${range}`);
                 const data = await res.json();
                 if (data.history) chartHistory = data.history;
                 if (data.stats) currentTrends = data.stats;
@@ -45,18 +53,18 @@
     onMount(() => fetchOtpData());
 </script>
 
-<div class="flex h-screen overflow-hidden font-sans selection:bg-brand-100 selection:text-brand-900">
+<div class="flex h-screen overflow-hidden font-sans text-[var(--text-main)] selection:bg-[var(--color-brand-200)] selection:text-[var(--color-brand-900)]">
     
     {#if currentTab === 'OTP'}
-        <aside class="w-80 bg-white/70 backdrop-blur-xl border-r border-white/20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex-shrink-0 flex flex-col z-30">
+        <aside class="w-80 bg-[var(--bg-glass)] backdrop-blur-xl border-r border-[var(--border-subtle)] shadow-fluent flex-shrink-0 flex flex-col z-30 transition-colors duration-300">
             <div class="h-20 flex items-center px-6">
                 <div class="flex items-center gap-3">
-                    <div class="p-2 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl shadow-lg shadow-brand-500/30">
+                    <div class="p-2 bg-gradient-to-br from-[var(--color-brand-500)] to-[var(--color-brand-700)] rounded-xl shadow-lg shadow-[var(--color-brand-500)]/30">
                         <Activity size={22} class="text-white" />
                     </div>
                     <div>
-                        <h1 class="font-bold text-xl tracking-tight text-slate-900 leading-none">Winnipeg</h1>
-                        <span class="text-xs font-semibold text-brand-600 tracking-widest uppercase">TransitPulse</span>
+                        <h1 class="font-bold text-xl tracking-tight leading-none">Winnipeg</h1>
+                        <span class="text-xs font-bold text-[var(--color-brand-600)] tracking-widest uppercase">TransitPulse</span>
                     </div>
                 </div>
             </div>
@@ -66,52 +74,57 @@
 
     <main class="flex-1 flex flex-col h-screen min-w-0 relative">
         
-        <header class="h-20 flex items-center justify-between px-8 z-20">
-            <div class="flex p-1.5 bg-white/60 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
-                <button 
-                    on:click={() => currentTab = 'OTP'}
-                    class="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {currentTab === 'OTP' ? 'bg-white text-brand-700 shadow-md scale-100' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}"
-                >
-                    <BarChart3 size={18}/> Performance
-                </button>
-                <button 
-                    on:click={() => currentTab = 'RIDERSHIP'}
-                    class="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 {currentTab === 'RIDERSHIP' ? 'bg-white text-brand-700 shadow-md scale-100' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}"
-                >
-                    <Users size={18}/> Ridership
-                </button>
+        <header class="h-20 flex items-center justify-between px-8 z-20 flex-shrink-0">
+            <div class="flex p-1.5 bg-[var(--bg-card)] backdrop-blur-md rounded-2xl border border-[var(--border-subtle)] shadow-sm">
+                {#each ['OTP', 'RIDERSHIP', 'PASSUPS'] as tab}
+                    <button 
+                        on:click={() => currentTab = tab}
+                        class="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all duration-300 
+                        {currentTab === tab 
+                            ? 'bg-[var(--color-brand-500)] text-white shadow-md shadow-[var(--color-brand-500)]/20 scale-100' 
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-glass)]'}"
+                    >
+                        {#if tab === 'OTP'} <BarChart3 size={18}/> Performance {/if}
+                        {#if tab === 'RIDERSHIP'} <Users size={18}/> Ridership {/if}
+                        {#if tab === 'PASSUPS'} <Activity size={18}/> Pass-ups {/if}
+                    </button>
+                {/each}
             </div>
 
-            <div class="flex items-center gap-2 text-xs font-medium text-slate-500 bg-white/50 px-4 py-2 rounded-full border border-white/60 shadow-sm">
-                <div class="relative flex h-2.5 w-2.5">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] bg-[var(--bg-card)] px-4 py-2 rounded-full border border-[var(--border-subtle)] shadow-sm">
+                    <div class="relative flex h-2.5 w-2.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-brand-400)] opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--color-brand-500)]"></span>
+                    </div>
+                    <span>Live</span>
                 </div>
-                <span>Live Data Synced</span>
+                <ThemeToggle />
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8">
+        <div class="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 scroll-smooth">
             <div class="max-w-7xl mx-auto space-y-8 pb-10">
                 
                 {#if loading}
                     <div class="flex flex-col items-center justify-center h-[60vh] gap-6">
-                        <div class="loading loading-spinner loading-lg text-brand-600"></div>
-                        <p class="text-slate-400 animate-pulse font-medium">Connecting to Transit Network...</p>
+                        <div class="loading loading-spinner loading-lg text-[var(--color-brand-600)]"></div>
+                        <p class="text-[var(--text-muted)] animate-pulse font-medium">Connecting to Transit Network...</p>
                     </div>
                 {:else if error}
-                    <div class="alert alert-error shadow-lg rounded-2xl">
-                        <span>Error loading data. Is the server running?</span>
+                    <div class="alert alert-error shadow-lg rounded-2xl border border-red-200 bg-red-50 text-red-800">
+                        <span>{error}</span>
                     </div>
                 {:else}
+                    
                     {#if currentTab === 'OTP'}
                         
                         <div class="flex items-end justify-between">
                             <div>
-                                <h2 class="text-3xl font-bold text-slate-900 tracking-tight">
+                                <h2 class="text-3xl font-bold tracking-tight">
                                     {selectedRouteId === 'ALL' ? 'System Overview' : `Route ${selectedRouteId} Analysis`}
                                 </h2>
-                                <p class="text-slate-500 mt-1 font-medium">
+                                <p class="text-[var(--text-muted)] mt-1 font-medium">
                                     {selectedRouteId === 'ALL' ? 'Monitoring real-time performance across the entire network.' : 'Detailed breakdown of schedule adherence and stops.'}
                                 </p>
                             </div>
@@ -125,13 +138,31 @@
                         </div>
 
                         <div class="fluent-card p-6 h-[480px] relative overflow-hidden group">
-                            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-400 to-brand-600"></div>
+                            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--color-brand-300)] to-[var(--color-brand-500)]"></div>
+                            
                             <div class="flex justify-between items-center mb-6">
-                                <h3 class="text-lg font-bold text-slate-800">Performance Trend</h3>
-                                <div class="px-3 py-1 bg-brand-50 text-brand-700 text-xs font-bold rounded-lg uppercase tracking-wider">
-                                    30 Day History
+                                <h3 class="text-lg font-bold flex items-center gap-2">
+                                    Performance Trend
+                                    <span class="text-xs font-normal text-[var(--text-muted)] opacity-70 hidden sm:inline-block">
+                                        (Last {timeRange} Days)
+                                    </span>
+                                </h3>
+
+                                <div class="flex items-center gap-1 bg-[var(--bg-main)] p-1 rounded-lg border border-[var(--border-subtle)]">
+                                    {#each [30, 60, 90] as range}
+                                        <button 
+                                            on:click={() => timeRange = range}
+                                            class="px-3 py-1 text-xs font-bold rounded-md transition-all duration-200
+                                            {timeRange === range 
+                                                ? 'bg-[var(--color-brand-100)] text-[var(--color-brand-700)] shadow-sm' 
+                                                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card)]'}"
+                                        >
+                                            {range}d
+                                        </button>
+                                    {/each}
                                 </div>
                             </div>
+
                             <div class="h-[380px] w-full">
                                 <DailyTrendChart 
                                     chartData={chartHistory} 
@@ -140,7 +171,7 @@
                             </div>
                         </div>
 
-                        <div class="fluent-card p-2">
+                        <div class="fluent-card p-2 min-h-[400px]">
                             {#key selectedRouteId}
                                 {#if selectedRouteId === 'ALL'}
                                     <SystemMapOverview />
@@ -150,11 +181,17 @@
                             {/key}
                         </div>
 
+                    {:else if currentTab === 'PASSUPS'}
+                        <div class="fluent-card p-8 min-h-[500px]">
+                            <PassupDashboard />
+                        </div>
+
                     {:else}
                         <div class="fluent-card p-8 min-h-[500px]">
                             <SeasonalRidershipChart />
                         </div>
                     {/if} 
+
                 {/if}
             </div>
         </div>

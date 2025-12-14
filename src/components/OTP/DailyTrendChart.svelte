@@ -1,15 +1,13 @@
 <script lang="ts">
-    import { onMount, afterUpdate } from 'svelte';
+    import { onMount } from 'svelte';
     import Chart from 'chart.js/auto';
 
-    // 1. Accept data from parent instead of fetching it
     export let chartData: any[] = []; 
     export let label: string = "System OTP";
 
     let canvas: HTMLCanvasElement;
     let chartInstance: Chart;
 
-    // 2. Reactivity: Update chart when data changes
     $: if (chartInstance && chartData) {
         updateChart();
     }
@@ -20,9 +18,13 @@
 
     function initChart() {
         if (!canvas) return;
-        
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
+
+        // --- THE GRADIENT MAGIC ---
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(20, 184, 166, 0.4)'); // Teal-500 at top
+        gradient.addColorStop(1, 'rgba(20, 184, 166, 0.0)'); // Transparent at bottom
 
         chartInstance = new Chart(ctx, {
             type: 'line',
@@ -31,13 +33,15 @@
                 datasets: [{
                     label: 'On-Time Performance',
                     data: [],
-                    borderColor: '#0d9488', // Teal-600
-                    backgroundColor: 'rgba(13, 148, 136, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
+                    borderColor: '#14b8a6', // Solid Teal Line
+                    backgroundColor: gradient, // The Gradient Fill
+                    borderWidth: 3,
+                    tension: 0.4, // Smooth curves
                     fill: true,
-                    pointRadius: 2,
-                    pointHoverRadius: 5
+                    pointBackgroundColor: '#f0fdfa', // Teal-50
+                    pointBorderColor: '#0d9488', // Teal-600
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
@@ -48,6 +52,12 @@
                     tooltip: {
                         mode: 'index',
                         intersect: false,
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)', // Slate-900 tooltip
+                        titleColor: '#f8fafc',
+                        bodyColor: '#f8fafc',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        padding: 10,
                         callbacks: {
                             label: (ctx) => `OTP: ${ctx.parsed.y}%`
                         }
@@ -55,35 +65,50 @@
                 },
                 scales: {
                     y: {
-                        beginAtZero: false,
-                        min: 0,
-                        max: 100,
-                        grid: { color: '#f3f4f6' }
+                        beginAtZero: true, // Start at 0
+                        min: 0,            // Force minimum 0
+                        max: 100,          // Force maximum 100
+                        grid: { 
+                            color: 'rgba(148, 163, 184, 0.1)', // Very subtle grid
+                            tickLength: 0
+                        },
+                        ticks: { 
+                            color: '#94a3b8', // Slate-400 text
+                            stepSize: 10     
+                        } 
                     },
-                    x: {
-                        grid: { display: false }
-                    }
+                   x: {
+        grid: { display: false },
+        ticks: { 
+            color: '#94a3b8',
+            maxTicksLimit: 12, // <--- THIS FIXES IT
+            // This forces Chart.js to only show roughly 12 labels max (e.g., 1 per week for 90 days)
+            // regardless of how many data points exist.
+            maxRotation: 0,
+            autoSkip: true
+        }
+    },
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
                 }
             }
         });
-        
-        // Load initial data
         updateChart();
     }
 
     function updateChart() {
         if (!chartInstance || !chartData) return;
 
-        // Map the data props to ChartJS format
         chartInstance.data.labels = chartData.map(d => {
-            // Format 2025-12-09 -> Dec 09
             const date = new Date(d.date);
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         });
         
         chartInstance.data.datasets[0].data = chartData.map(d => d.otp);
         chartInstance.data.datasets[0].label = label;
-        
         chartInstance.update();
     }
 </script>
