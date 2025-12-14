@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 
 export const passupStore = writable({
     summary: [],
+    trends: {}, // [NEW] Add trends object to state
     loading: false,
     error: null
 });
@@ -16,10 +17,10 @@ export async function fetchPassupData() {
         
         const data = await response.json();
         
-        // The processor returns { passups_by_month: [...] }
         passupStore.update(s => ({ 
             ...s, 
             summary: data.passups_by_month || [], 
+            trends: data.trends || {}, // [NEW] Save trends
             loading: false 
         }));
     } catch (e) {

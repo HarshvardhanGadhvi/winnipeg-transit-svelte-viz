@@ -10,6 +10,12 @@
 
     onMount(() => {
         const ctx = canvas.getContext('2d');
+        
+        // Gradient for bars
+        const gradient = ctx.createLinearGradient(0, 0, 300, 0);
+        gradient.addColorStop(0, '#fcd34d'); // Amber-300
+        gradient.addColorStop(1, '#fbbf24'); // Amber-400
+
         chart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -17,16 +23,26 @@
                 datasets: [{
                     label: 'Pass-ups',
                     data: [],
-                    backgroundColor: '#f59e0b',
-                    borderRadius: 4
+                    backgroundColor: gradient,
+                    borderRadius: 4,
+                    barThickness: 20
                 }]
             },
             options: {
-                indexAxis: 'y', // Horizontal Bar Chart
+                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { x: { grid: { display: true } }, y: { grid: { display: false } } }
+                scales: { 
+                    x: { 
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    }, 
+                    y: { 
+                        grid: { display: false },
+                        ticks: { color: '#64748b', font: { weight: 'bold' } }
+                    } 
+                }
             }
         });
         updateChart();

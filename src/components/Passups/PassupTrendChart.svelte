@@ -7,7 +7,6 @@
     let canvas: HTMLCanvasElement;
     let chartInstance: Chart;
 
-    // Watch for data changes and update
     $: if (chartInstance && chartData) {
         updateChart();
     }
@@ -26,31 +25,39 @@
             data: {
                 labels: [],
                 datasets: [
-    {
-        label: 'Wheelchair Denials',
-        data: [],
-        backgroundColor: '#818cf8', // Soft Indigo (instead of harsh blue)
-        borderRadius: 4,
-    },
-    {
-        label: 'Full Bus Pass-ups',
-        data: [],
-        backgroundColor: '#fbbf24', // Soft Amber (instead of harsh orange)
-        borderRadius: 4,
-    }
-
+                    {
+                        label: 'Wheelchair Denials',
+                        data: [],
+                        // Soft Teal (Brand Color)
+                        backgroundColor: '#2dd4bf', 
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                    },
+                    {
+                        label: 'Full Bus Pass-ups',
+                        data: [],
+                        // Soft Amber (Warning Color)
+                        backgroundColor: '#fbbf24', 
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                    }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'top' },
+                    legend: { 
+                        position: 'top',
+                        labels: { color: '#94a3b8' } // Slate-400
+                    },
                     tooltip: { 
                         mode: 'index', 
                         intersect: false,
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#f8fafc',
                         callbacks: {
-                            // Add a total to the tooltip for clarity
                             footer: (tooltipItems) => {
                                 let total = 0;
                                 tooltipItems.forEach(t => total += t.parsed.y);
@@ -61,13 +68,15 @@
                 },
                 scales: {
                     x: { 
-                        stacked: true, // <--- CRITICAL: Stacks columns horizontally
-                        grid: { display: false } 
+                        stacked: true, 
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
                     },
                     y: { 
-                        stacked: true, // <--- CRITICAL: Stacks values vertically
+                        stacked: true, 
                         beginAtZero: true, 
-                        grid: { color: '#f3f4f6' } 
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        ticks: { color: '#94a3b8' }
                     }
                 }
             }
@@ -77,13 +86,11 @@
 
     function updateChart() {
         if (!chartInstance || !chartData) return;
-
-        // Ensure we sort by date so the chart reads left-to-right correctly
-        // Assuming 'month' is "YYYY-MM" string, string sort works fine.
+        
+        // Sort by date string YYYY-MM
         const sortedData = [...chartData].sort((a, b) => a.month.localeCompare(b.month));
 
         chartInstance.data.labels = sortedData.map(d => {
-            // Convert "2025-07" -> "July"
             const date = new Date(d.month + '-01'); 
             return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         });
