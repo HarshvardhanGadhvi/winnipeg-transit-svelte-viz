@@ -8,7 +8,7 @@
 
     onMount(async () => {
         try {
-            const res = await fetch('http://localhost:5001/api/v1/otp/map');
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/otp/map`);
             const allStops = await res.json();
 
             // [FIXED] Strict filtering: ONLY show Late stops in the red map

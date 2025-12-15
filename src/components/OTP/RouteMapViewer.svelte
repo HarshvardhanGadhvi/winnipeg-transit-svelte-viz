@@ -34,7 +34,7 @@
     async function fetchRouteData() {
         loading = true;
         try {
-            const res = await fetch(`http://localhost:5001/api/v1/otp/map?route=${routeId}`);
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/otp/map?route=${routeId}`);
             rawData = await res.json();
         } catch (e) {
             console.error("Route Map Error:", e);

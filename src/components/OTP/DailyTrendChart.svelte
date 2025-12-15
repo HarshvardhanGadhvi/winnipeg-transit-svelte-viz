@@ -59,8 +59,8 @@
             const isSingleRoute = (routeId && routeId !== 'ALL');
             
             const baseUrl = isSingleRoute
-                ? `http://localhost:5001/api/v1/otp/route/${routeId}` // Endpoint 3 (Single Route)
-                : `http://localhost:5001/api/v1/otp/system-history`; // Endpoint 2 (System)
+                ? `${import.meta.env.VITE_API_BASE_URL}/otp/route/${routeId}`
+                : `${import.meta.env.VITE_API_BASE_URL}/otp/system-history`;
 
             const url = `${baseUrl}?days=${selectedDays}`;
             

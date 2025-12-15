@@ -31,3 +31,6 @@ dist-ssr
 # Logs and OS files
 *.log
 .DS_Store
+
+
+.env

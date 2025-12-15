@@ -104,7 +104,7 @@
                 }
             } else {
                 // For Single Route: We must fetch fresh stats
-                const res = await fetch(`http://localhost:5001/api/v1/otp/route/${routeId}`);
+                const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/otp/route/${routeId}`);
                 const data = await res.json();
                 
                 if (data.stats) {

@@ -39,8 +39,8 @@
         fetchPassupData();
         try {
             const [mapRes, routeRes] = await Promise.all([
-                fetch('http://localhost:5001/api/v1/passups/map'),
-                fetch('http://localhost:5001/api/v1/passups/routes')
+                fetch(`${import.meta.env.VITE_API_BASE_URL}/passups/map`),
+                fetch(`${import.meta.env.VITE_API_BASE_URL}/passups/routes`)
             ]);
             heatmapData = await mapRes.json();
             routeRankData = await routeRes.json();

@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-const API_BASE = 'http://localhost:5001/api/v1/ridership';
+const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/ridership`;
 
 // --- TYPES (Exported so components can use them) ---
 export interface RidershipSeason {
