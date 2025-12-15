@@ -1,53 +1,69 @@
 <script lang="ts">
-    import { TrendingUp, TrendingDown, Minus } from 'lucide-svelte';
+    import { TrendingUp, TrendingDown, Minus, ArrowRight, Info } from 'lucide-svelte';
     
     export let title: string;
     export let value: string | number;
-    // Expanded color options
+    // [FIX] This prop was unused before; now we map it to classes
     export let color: 'brand' | 'success' | 'warning' | 'danger' | 'slate' | 'blue' | 'orange' | 'rose' = 'slate';
     export let trendValue: number = 0; 
     export let trendLabel: string = "vs last 30 days";
     export let inverse: boolean = false; 
+    export let showTrend: boolean = true;
+    export let trendText: string | null = null;
+    export let description: string = ""; 
 
-    // Dynamic Color Maps (Using Variables for better Dark Mode contrast)
+    // [NEW] Color Mapping
     const colorMap = {
-        brand:  'bg-[var(--color-brand-50)] text-[var(--color-brand-700)] ring-[var(--color-brand-100)]',
-        blue:   'bg-blue-50 text-blue-700 ring-blue-100',
-        orange: 'bg-orange-50 text-orange-700 ring-orange-100',
-        slate:  'bg-slate-100 text-slate-700 ring-slate-200',
-        rose:   'bg-rose-50 text-rose-700 ring-rose-100',
-        success: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-        warning: 'bg-amber-50 text-amber-700 ring-amber-100',
-        danger:  'bg-red-50 text-red-700 ring-red-100',
+        brand:   'text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]',
+        success: 'text-[var(--color-success-600)] dark:text-[var(--color-success-400)]',
+        warning: 'text-amber-600 dark:text-amber-400',
+        danger:  'text-[var(--color-danger-600)] dark:text-[var(--color-danger-400)]',
+        blue:    'text-blue-600 dark:text-blue-400',
+        orange:  'text-orange-600 dark:text-orange-400',
+        rose:    'text-rose-600 dark:text-rose-400',
+        slate:   'text-[var(--text-main)]'
     };
 
     $: themeClass = colorMap[color] || colorMap.slate;
 
-    // Trend Logic
     $: isGood = inverse ? trendValue < 0 : trendValue > 0;
     $: isNeutral = Math.abs(trendValue) < 0.1;
-    $: trendColor = isNeutral ? 'text-[var(--text-muted)]' : (isGood ? 'text-emerald-600 bg-emerald-50/50' : 'text-rose-600 bg-rose-50/50');
-    $: TrendIcon = isNeutral ? Minus : (trendValue > 0 ? TrendingUp : TrendingDown);
-    $: formattedTrend = (trendValue > 0 ? '+' : '') + trendValue.toFixed(1);
+
+    const neutralClass = 'text-slate-600 bg-slate-100 dark:text-slate-400 dark:bg-slate-500/10';
+    const goodClass = 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/20';
+    const badClass = 'text-rose-600 bg-rose-50 dark:text-rose-400 dark:bg-rose-500/20';
+
+    $: trendColor = (trendText) ? neutralClass : (isNeutral ? neutralClass : (isGood ? goodClass : badClass));
+    $: TrendIcon = trendText ? ArrowRight : (isNeutral ? Minus : (trendValue > 0 ? TrendingUp : TrendingDown));
+    $: formattedTrend = trendText || ((trendValue > 0 ? '+' : '') + trendValue.toFixed(1) + '%');
 </script>
 
-<div class="fluent-card p-6 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+<div class="fluent-card p-6 relative overflow-visible group hover:-translate-y-1 transition-transform duration-300">
     
-    <h3 class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 relative z-10">{title}</h3>
+    <div class="flex items-center gap-2 mb-1 relative z-10">
+        <h3 class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{title}</h3>
+        {#if description}
+            <div class="relative group/info">
+                <Info size={14} class="text-[var(--text-muted)] cursor-help opacity-50 hover:opacity-100 transition-opacity" />
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible transition-all duration-200 z-50 pointer-events-none text-center leading-relaxed font-medium">
+                    {description}
+                    <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                </div>
+            </div>
+        {/if}
+    </div>
     
     <div class="flex justify-between items-start relative z-10 mt-2">
-        <div class="text-3xl font-extrabold text-[var(--text-main)] tracking-tight">{value}</div>
-        
-        <div class="p-2 rounded-xl {themeClass} ring-1 ring-inset shadow-sm">
-            <div class="w-5 h-5 bg-current opacity-20 rounded-full"></div> 
-        </div>
+        <div class="text-4xl font-extrabold tracking-tight {themeClass}">{value}</div>
     </div>
 
-    <div class="mt-4 flex items-center gap-2 relative z-10">
-        <div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold {trendColor}">
-            <svelte:component this={TrendIcon} size={12} strokeWidth={3} />
-            <span>{formattedTrend}%</span>
+    {#if showTrend}
+        <div class="mt-4 flex items-center gap-2 relative z-10">
+            <div class="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold {trendColor} transition-colors">
+                <svelte:component this={TrendIcon} size={14} strokeWidth={3} />
+                <span>{formattedTrend}</span>
+            </div>
+            <span class="text-xs font-medium text-[var(--text-muted)] opacity-80">{trendLabel}</span>
         </div>
-        <span class="text-xs font-medium text-[var(--text-muted)] opacity-80">{trendLabel}</span>
-    </div>
+    {/if}
 </div>

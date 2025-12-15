@@ -1,20 +1,23 @@
-<script>
+<script lang="ts">
     import { onMount } from 'svelte';
     import Chart from 'chart.js/auto';
+    import type { PassupRoute } from '../../types';
 
-    export let routeData = [];
-    let canvas;
-    let chart;
+    // Apply Type
+    export let routeData: PassupRoute[] = [];
+    
+    let canvas: HTMLCanvasElement;
+    let chart: Chart; // Explicit Chart type
 
     $: if (chart && routeData.length > 0) updateChart();
 
     onMount(() => {
         const ctx = canvas.getContext('2d');
-        
-        // Gradient for bars
+        if(!ctx) return; // Null check
+
         const gradient = ctx.createLinearGradient(0, 0, 300, 0);
-        gradient.addColorStop(0, '#fcd34d'); // Amber-300
-        gradient.addColorStop(1, '#fbbf24'); // Amber-400
+        gradient.addColorStop(0, '#fcd34d'); 
+        gradient.addColorStop(1, '#fbbf24'); 
 
         chart = new Chart(ctx, {
             type: 'bar',

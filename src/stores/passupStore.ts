@@ -1,18 +1,26 @@
 import { writable } from 'svelte/store';
+import type { PassupMonth, PassupTrends } from '../types';
 
-export const passupStore = writable({
+const API_BASE = 'http://localhost:5001/api/v1/passups';
+
+interface PassupState {
+    summary: PassupMonth[];
+    trends: PassupTrends;
+    loading: boolean;
+    error: string | null;
+}
+
+export const passupStore = writable<PassupState>({
     summary: [],
-    trends: {}, // [NEW] Add trends object to state
+    trends: { total_change: 0, full_bus_change: 0, wheelchair_change: 0 },
     loading: false,
     error: null
 });
 
-const API_BASE = 'http://localhost:5001/api/v1';
-
 export async function fetchPassupData() {
     passupStore.update(s => ({ ...s, loading: true }));
     try {
-        const response = await fetch(`${API_BASE}/passups/summary`);
+        const response = await fetch(`${API_BASE}/summary`);
         if (!response.ok) throw new Error("Failed to fetch passups");
         
         const data = await response.json();
@@ -20,10 +28,10 @@ export async function fetchPassupData() {
         passupStore.update(s => ({ 
             ...s, 
             summary: data.passups_by_month || [], 
-            trends: data.trends || {}, // [NEW] Save trends
+            trends: data.trends || { total_change: 0, full_bus_change: 0, wheelchair_change: 0 },
             loading: false 
         }));
-    } catch (e) {
+    } catch (e: any) {
         console.error("Passup Store Error:", e);
         passupStore.update(s => ({ ...s, loading: false, error: e.message }));
     }

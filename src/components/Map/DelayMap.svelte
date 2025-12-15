@@ -1,82 +1,121 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import 'leaflet/dist/leaflet.css';
-    import type { Map, LayerGroup, LatLngTuple } from 'leaflet';
+    import { onMount, onDestroy } from 'svelte';
 
     export let points: any[] = [];
-    export let mapId: string = 'map'; 
+    export let mapId: string = "map-container";
 
-    let mapElement: HTMLElement;
-    let map: Map;
-    let markersLayer: LayerGroup;
-    const CENTER: LatLngTuple = [49.8951, -97.1384];
+    let map: any;
+    let L: any;
+    let currentZoom = 11; // Track zoom
 
-    $: if (map && markersLayer && points) {
-        updateMarkers();
+    $: if (map && points) {
+        drawPoints();
     }
 
     onMount(async () => {
-        const L = await import('leaflet');
-        if (!mapElement) return;
+        const leaflet = await import('leaflet');
+        L = leaflet.default;
+        await import('leaflet/dist/leaflet.css');
+        initMap();
+    });
 
-        map = L.map(mapElement).setView(CENTER, 12);
+    onDestroy(() => {
+        if (map) {
+            map.off('zoomend'); 
+            map.remove();
+        }
+    });
+
+    function initMap() {
+        const container = document.getElementById(mapId);
+        if (!container || (container as any)._leaflet_id) return;
+
+        map = L.map(mapId).setView([49.8951, -97.1384], 11);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap',
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
             subdomains: 'abcd',
             maxZoom: 19
         }).addTo(map);
 
-        markersLayer = L.layerGroup().addTo(map);
-        updateMarkers();
-    });
+        // Listen for zoom changes
+        map.on('zoomend', () => {
+            currentZoom = map.getZoom();
+            drawPoints();
+        });
 
-    async function updateMarkers() {
-        if (!points || !map) return;
-        const L = await import('leaflet');
-        markersLayer.clearLayers();
+        drawPoints();
+        
+    }
 
-        points.forEach(stop => {
-            let color = '#10b981'; // Green (On Time)
-            let radius = 4;        
+    function drawPoints() {
+        if (!map || !L) return;
 
-            if (stop.status === 'Late') {
-                color = '#ef4444'; // Red
-                // Late stops stay prominent (Base 4 + up to 12px extra)
-                radius = 4 + (stop.severity * 12); 
-            } 
-            else if (stop.status === 'Early') {
-                color = '#3b82f6'; // Blue
-                // [FIX] Make Early circles MUCH smaller/subtler
-                // Base 3 + only up to 4px extra. 
-                // They will now be 3px-7px instead of 4px-16px.
-                radius = 3 + (stop.severity * 4);
+        // Clear existing markers
+        map.eachLayer((layer: any) => {
+            if (layer instanceof L.CircleMarker) {
+                map.removeLayer(layer);
             }
+        });
 
-            const marker = L.circleMarker([stop.lat, stop.lng], {
-                color: color,
-                fillColor: color,
-                fillOpacity: 0.6, // Slightly more transparent
+        if (points.length === 0) return;
+
+        // [FIXED] Exponential Scaling Formula
+        // Zoom 10 -> (10-9)^1.8 = 1px (Tiny) -> clamped to 3px
+        // Zoom 13 -> (13-9)^1.8 = ~12px -> clamped to 8px
+        // This ensures they stay small at city level but pop at street level.
+        
+        let baseRadius = 3; 
+        if (currentZoom >= 13) baseRadius = 6;
+        if (currentZoom >= 15) baseRadius = 10;
+        if (currentZoom >= 17) baseRadius = 14;
+
+        points.forEach((p) => {
+            const lat = p.lat || p.latitude;
+            const lng = p.lng || p.longitude;
+            const status = p.status || "On Time";
+
+            if (!lat || !lng) return;
+
+            let color = '#3b82f6'; // Blue
+            if (status === 'Late') color = '#ef4444'; // Red
+            if (status === 'On Time') color = '#10b981'; // Green
+
+            // Subtle boost for Late stops so they stand out in the clutter
+            const sizeBoost = (status === 'Late') ? 1.5 : 0;
+            const radius = baseRadius + sizeBoost;
+
+            L.circleMarker([lat, lng], {
                 radius: radius,
-                weight: 0 // Remove border stroke for cleaner look
-            });
-
-            const popupContent = 
-                '<div class="text-sm font-sans p-1">' +
-                    '<strong class="text-slate-700">' + (stop.name || 'Stop') + '</strong><br/>' +
-                    '<span style="color:' + color + '; font-weight:bold">' + stop.status + '</span><br/>' +
-                    '<div class="text-xs text-slate-500 mt-1">' +
-                        'Late Freq: ' + stop.late_pct + '%<br/>' +
-                        'Early Freq: ' + stop.early_pct + '%' +
-                    '</div>' +
-                '</div>';
-
-            marker.bindPopup(popupContent);
-            marker.addTo(markersLayer);
+                fillColor: color,
+                color: '#fff', 
+                weight: 1, // Thin border
+                fillOpacity: 0.8
+            })
+            .bindPopup(`
+                <div class="font-sans text-sm p-2">
+                    <strong class="block text-slate-800 text-base mb-1">${p.name}</strong>
+                    <div class="flex items-center justify-between gap-4 text-xs mb-1">
+                        <span class="text-slate-500">Status:</span>
+                        <span class="font-bold px-2 py-0.5 rounded-full text-white" style="background-color: ${color}">${status}</span>
+                    </div>
+                    <div class="flex justify-between gap-4 text-xs">
+                        <span class="text-slate-500">Avg Deviation:</span>
+                        <span class="font-mono text-slate-700 font-bold">${p.avg_deviation} min</span>
+                    </div>
+                </div>
+            `)
+            .addTo(map);
         });
     }
 </script>
 
-<div class="w-full h-full rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-sm relative z-0">
-    <div id={mapId} bind:this={mapElement} class="w-full h-full bg-slate-100"></div>
-</div>
+<div id={mapId} class="w-full h-full z-0"></div>
+
+<style>
+    div {
+        min-height: 100%;
+        width: 100%;
+        border-radius: inherit; 
+    }
+</style>

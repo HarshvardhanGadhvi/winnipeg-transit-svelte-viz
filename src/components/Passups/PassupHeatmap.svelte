@@ -1,10 +1,14 @@
-<script>
+<script lang="ts">
     import { onMount } from 'svelte';
     import 'leaflet/dist/leaflet.css';
+    import type { PassupHeatPoint } from '../../types'; // Import the type
 
-    export let mapData = [];
-    let map;
-    let mapContainer;
+    // Apply Type
+    export let mapData: PassupHeatPoint[] = [];
+    
+    // Explicitly type the map variables (as any for Leaflet simplicity, or specific if you want)
+    let map: any;
+    let mapContainer: HTMLElement;
 
     $: if (map && mapData.length > 0) {
         drawPoints();
@@ -29,24 +33,22 @@
         const L = await import('leaflet');
         if (!map) return;
 
-        map.eachLayer((layer) => {
+        map.eachLayer((layer: any) => { // Type 'layer' as any
             if (layer instanceof L.CircleMarker) map.removeLayer(layer);
         });
 
         mapData.forEach(point => {
             if (point.lat && point.lng) {
-                // Pastel Colors
-                // Wheelchair = Soft Teal (#2dd4bf), Full Bus = Soft Amber (#fbbf24)
                 const color = point.pass_up_type.includes('Wheelchair') ? '#2dd4bf' : '#fbbf24';
                 
-                L.circleMarker([point.lat, point.lng], {
-                    radius: 5,
-                    fillColor: color,
-                    color: null,
-                    weight: 0,
-                    opacity: 1,
-                    fillOpacity: 0.5 
-                }).addTo(map);
+               L.circleMarker([point.lat, point.lng], {
+    radius: 3,
+    fillColor: color,
+    color: '', // Use empty string instead of null to remove border
+    weight: 0,
+    opacity: 1,
+    fillOpacity: 0.5 
+}).addTo(map);
             }
         });
     }

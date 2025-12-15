@@ -1,18 +1,11 @@
 <script lang="ts">
     import { otpStore } from '../../stores/otpStore';
+    import type { Route } from '../../types';
     
     export let selectedRouteId: string;
 
-    interface Route {
-        route_number: string;
-        otp_percentage: number;
-        color: string;
-        text_color: string;
-        route_name?: string;
-    }
-
-    $: storeData = $otpStore as { routes: Route[] };
-    $: routes = storeData.routes || [];
+    $: storeData = $otpStore as any; 
+    $: routes = (storeData.routes || []) as Route[];
 
     // --- SERVICE LEVEL SORTING ---
     function getPriority(routeNum: string) {
@@ -21,13 +14,8 @@
         if (r.startsWith('FX')) return 2;
         if (r.startsWith('F')) return 3;
         if (r.startsWith('D')) return 4;
-        
         const n = parseInt(r);
-        if (!isNaN(n)) {
-            if (n < 100) return 5; 
-            return 6;              
-        }
-        return 7;
+        return !isNaN(n) ? (n < 100 ? 5 : 6) : 7;
     }
 
     $: sortedRoutes = [...routes].sort((a, b) => {
@@ -36,28 +24,13 @@
         return pA - pB || parseInt(a.route_number) - parseInt(b.route_number);
     });
 
-    // --- SMART NAME FORMATTER ---
-    // Turns "Route 220 Crestview - Westwood" into "Crestview - Westwood"
     function getDisplayName(route: Route): string {
         if (!route.route_name) return `Route ${route.route_number}`;
-
         let name = route.route_name.trim();
         const num = route.route_number.trim();
-
-        // 1. Remove "Route {number}" prefix if it exists (case insensitive)
-        // e.g. "Route 11 Portage" -> "Portage"
-        const prefixRegex = new RegExp(`^Route\\s+${num}\\s*[-:]?\\s*`, 'i');
-        name = name.replace(prefixRegex, '');
-
-        // 2. Remove just the number if it starts with it
-        // e.g. "11 Portage" -> "Portage"
-        const numRegex = new RegExp(`^${num}\\s*[-:]?\\s*`, 'i');
-        name = name.replace(numRegex, '');
-
-        // 3. Special Case: If the name is now empty (e.g. name was just "BLUE"), use original
-        if (!name) return route.route_name;
-
-        return name;
+        name = name.replace(new RegExp(`^Route\\s+${num}\\s*[-:]?\\s*`, 'i'), '');
+        name = name.replace(new RegExp(`^${num}\\s*[-:]?\\s*`, 'i'), '');
+        return name || route.route_name;
     }
 </script>
 
@@ -66,11 +39,11 @@
     <button 
         class="w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 border group
         {selectedRouteId === 'ALL' 
-            ? 'bg-[var(--color-brand-50)] border-[var(--color-brand-200)] shadow-sm' 
+            ? 'bg-[var(--color-brand-50)] dark:bg-[var(--color-brand-900)] border-[var(--color-brand-200)] dark:border-[var(--color-brand-700)] shadow-sm' 
             : 'bg-[var(--bg-card)] border-transparent hover:border-[var(--color-brand-200)] hover:bg-[var(--bg-main)]'}"
         on:click={() => selectedRouteId = 'ALL'}
     >
-        <span class="font-bold text-sm {selectedRouteId === 'ALL' ? 'text-[var(--color-brand-700)]' : 'text-[var(--text-muted)]'}">
+        <span class="font-bold text-sm {selectedRouteId === 'ALL' ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}">
             System Overview
         </span>
         
@@ -87,7 +60,7 @@
       <button 
         class="w-full group flex items-center gap-3 p-2 rounded-xl transition-all duration-200 border relative overflow-hidden
         {selectedRouteId === route.route_number 
-            ? 'bg-[var(--color-brand-50)] border-[var(--color-brand-200)] shadow-sm' 
+            ? 'bg-[var(--color-brand-50)] dark:bg-[var(--color-brand-900)] border-[var(--color-brand-200)] dark:border-[var(--color-brand-700)] shadow-sm' 
             : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--bg-card)] hover:text-[var(--text-main)] hover:shadow-sm'}"
         on:click={() => selectedRouteId = route.route_number}
     >
@@ -106,14 +79,13 @@
         </div>
         
         <div class="flex flex-col items-start overflow-hidden min-w-0">
-            <span class="font-bold text-sm truncate w-full transition-colors text-left
-                {selectedRouteId === route.route_number ? 'text-[var(--color-brand-900)]' : ''}">
+            <span class="font-bold text-sm truncate w-full transition-colors text-left">
                 {getDisplayName(route)}
             </span>
         </div>
 
         {#if selectedRouteId === route.route_number}
-            <div class="ml-auto flex-shrink-0 text-[var(--color-brand-600)]">
+            <div class="ml-auto flex-shrink-0 text-[var(--color-brand-600)] dark:text-[var(--color-brand-400)]">
                 <div class="w-2 h-2 rounded-full bg-current shadow-[0_0_6px_currentColor]"></div>
             </div>
         {/if}

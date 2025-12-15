@@ -58,12 +58,17 @@
                         titleColor: '#f8fafc',
                         bodyColor: '#f8fafc',
                         callbacks: {
-                            footer: (tooltipItems) => {
-                                let total = 0;
-                                tooltipItems.forEach(t => total += t.parsed.y);
-                                return 'Total: ' + total;
-                            }
-                        }
+    footer: (tooltipItems: any[]) => {
+        let total = 0;
+        tooltipItems.forEach(t => {
+            // Check if parsed.y exists before adding
+            if (t.parsed && t.parsed.y) {
+                total += t.parsed.y;
+            }
+        });
+        return 'Total: ' + total;
+    }
+}
                     }
                 },
                 scales: {
