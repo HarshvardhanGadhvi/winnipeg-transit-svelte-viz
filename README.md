@@ -1,47 +1,71 @@
-# Svelte + TS + Vite
+# 🚍 Winnipeg Transit Pulse (Frontend)
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+**Transit Pulse** is a modern, real-time analytics dashboard for the Winnipeg Transit network. It serves as the visual interface for exploring On-Time Performance (OTP), ridership trends, and service bottlenecks using interactive charts and geospatial maps.
 
-## Recommended IDE Setup
+Built with **Svelte** and **Vite** for lightning-fast rendering.
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+## ⚡ Features
 
-## Need an official Svelte framework?
+* **📊 Performance Dashboard:** Real-time view of OTP scores, delay probabilities, and deviation trends.
+* **🗺️ Interactive Maps:**
+    * **Route Trace:** Visualizes specific route performance.
+    * **Heatmaps:** Identifies "Late" vs "Early" hotspots across the city.
+* **📈 Trend Analysis:** Beautiful, gradient-filled charts for historical data analysis (30-day views).
+* **🌓 Adaptive UI:** Fully responsive design with built-in **Dark/Light mode**.
+* **📱 Mobile Ready:** Responsive layout that works on desktop, tablets, and mobile devices.
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+## 🛠️ Tech Stack
 
-## Technical considerations
+* **Framework:** [Svelte](https://svelte.dev/) (via [Vite](https://vitejs.dev/))
+* **Styling:** Tailwind CSS + Custom CSS Variables
+* **Visualization:** Chart.js (Trends), Leaflet (Maps)
+* **Icons:** Lucide-Svelte
+* **State Management:** Svelte Stores
 
-**Why use this over SvelteKit?**
+## 🚀 Getting Started
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+### Prerequisites
+* Node.js (v16 or higher)
+* npm or yarn
+* A running instance of the **Transit Pulse API** (Backend)
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+### Installation
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/HarshvardhanGadhvi/winnipeg-transit-svelte-viz.git
+    cd winnipeg-transit-svelte-viz
+    ```
 
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
+3.  **Environment Setup:**
+    Create a `.env` file in the root directory to point to your backend API.
+    
+    ```env
+    # .env
+    # Point this to your backend server IP/URL
+    VITE_API_BASE_URL=http://localhost:5001/api/v1
+    ```
 
-**Why include `.vscode/extensions.json`?**
+4.  Start the development server:
+    ```bash
+    npm run dev
+    ```
 
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
+5.  Open your browser at `http://localhost:5173` (or the Network IP shown in the terminal).
 
-**Why enable `allowJs` in the TS template?**
+## 📂 Project Structure
 
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
-```
+```text
+src/
+├── components/
+│   ├── OTP/          # OTP Dashboard Widgets (Scorecards, Charts)
+│   ├── Map/          # Leaflet Map Wrappers
+│   ├── Passups/      # Pass-up Logic
+│   └── Ridership/    # Ridership Graphs
+├── stores/           # Global State (otpStore, ridershipStore)
+└── App.svelte        # Main Application Layout
