@@ -30,7 +30,7 @@ jobs:
           ###### Repository/Build Configurations ######
           app_location: "/" 
           api_location: "" 
-          output_location: "build" # <--- CHANGED from 'dist' to 'build' (Standard for SvelteKit)
+          output_location: "dist" # <--- CHANGED from 'build' to 'dist' again
           ###### End of Repository/Build Configurations ######
         env:
           NODE_VERSION: '22' # Forcing node 22
@@ -46,3 +46,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_KIND_GRASS_073448D0F }}
           action: "close"
+
